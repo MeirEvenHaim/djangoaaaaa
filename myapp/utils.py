@@ -1,14 +1,10 @@
-import logging
-import requests
 from django.core.cache import cache
 from django.shortcuts import render
-from django.core.cache import cache
-
-logger = logging.getLogger(__name__)
-
 import json
-from django.core.cache import cache
 import logging
+from paypalrestsdk import Webhook
+from myapp.views.paymentView import get_paypal_client
+
 
 logger = logging.getLogger(__name__)
 
@@ -77,4 +73,21 @@ def log_with_context(logger, request, message, level='info'):
 
 
     
+
+
+def create_webhook():
+    client = get_paypal_client()
+    webhook = Webhook({
+        "url": "https://your-domain.com/webhook/",
+        "event_types": [
+            {"name": "PAYMENT.CAPTURE.COMPLETED"},
+            {"name": "CHECKOUT.ORDER.APPROVED"}
+        ]
+    })
+
+    if webhook.create():
+        print("Webhook created successfully:", webhook.id)
+        return webhook.id
+    else:
+        print("Failed to create webhook:", webhook.error)
 

@@ -41,6 +41,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'django.middleware.gzip.GZipMiddleware',  # For compression
+    # 'django.middleware.cache.CacheMiddleware',  # For caching
+    # 'django.middleware.locale.LocaleMiddleware',  # For language support
+    # 'django.middleware.transaction.TransactionMiddleware',  # For DB transactions
 ]
 
 # URL Configuration
@@ -143,9 +147,9 @@ EMAIL_USE_SSL = True  # Use SSL for secure connection
 
 # PayPal Configuration
 PAYPAL_MODE = 'sandbox'  # or 'live' for production
-PAYPAL_CLIENT_ID = 'YOUR_PAYPAL_CLIENT_ID'
-PAYPAL_CLIENT_SECRET = 'YOUR_PAYPAL_CLIENT_SECRET'
-PAYPAL_RECEIVER_EMAIL = 'your_paypal_business_email@example.com'
+PAYPAL_CLIENT_ID = 'AcTg13p-nTvInt70-aj_Kj-d-2CcyWUflaoP8hhKRnWYYAOUOsmgQiGHbLack1Ln912UtnCBneKiZJ4y'
+PAYPAL_CLIENT_SECRET = 'EEjItYIIZKwfF1c7d1VH9DAEdRzVCj0inPsa4l2DdoZt5J9DQ8n2J5huagsGt9lTzLHWf7JKOOC8HxW-'
+PAYPAL_RECEIVER_EMAIL = 'meiro@meiro.com'
 PAYPAL_TEST = True  # Set False when going live
 # URLs for PayPal's return/cancel pages (use dummy URLs for now)
 PAYPAL_NOTIFY_URL = 'http://localhost:8000/paypal-ipn/'
@@ -221,3 +225,6 @@ LOGGING = {
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+
+
+

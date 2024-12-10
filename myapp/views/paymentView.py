@@ -1,18 +1,20 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from myapp.Models import Payment, Cart
+from myapp.Models import Payment
 from myapp.serializers.payment_serializer import PaymentSerializer
-import paypalrestsdk
+import paypalrestsdk # type: ignore
 from django.conf import settings
 from django.core.mail import send_mail
 
 # Configure PayPal SDK
-paypalrestsdk.configure({
-    "mode": settings.PAYPAL_MODE,  # 'sandbox' for testing or 'live' for production
-    "client_id": settings.PAYPAL_CLIENT_ID,
-    "client_secret": settings.PAYPAL_CLIENT_SECRET
-})
+def get_paypal_client():
+    paypalrestsdk.configure({
+        "mode": settings.PAYPAL_ENVIRONMENT,  # "sandbox" or "live"
+        "client_id": settings.PAYPAL_CLIENT_ID,
+        "client_secret": settings.PAYPAL_CLIENT_SECRET,
+    })
+    return paypalrestsdk
 
 
 @api_view(['GET', 'POST'])

@@ -1,11 +1,15 @@
 from rest_framework import serializers
-from myapp.Models import Cart, Cart_link_product, Product
+from myapp.Models import Cart, Cart_link_product, Payment, Product 
 from myapp.services.stock_manager import StockManager
 from django.contrib.auth.models import User
+from paypalrestsdk import Payment as PaypalPayment
+
+
+
 class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField()
     client_name = serializers.SerializerMethodField()
-    
+    product_price = serializers.SerializerMethodField()
     
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     cart = serializers.PrimaryKeyRelatedField(queryset=Cart.objects.all())
@@ -13,14 +17,18 @@ class CartItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Cart_link_product
-        fields = ["id",'cart', 'product', 'quantity','product_name', 'client_name']
+        fields = ["id",'cart', 'product', 'quantity','product_name', 'client_name' ,"product_price" ]
         
     def get_id(self, obj):
         # Assuming the client name is stored in the `User` model in the `name` field
-        return obj.cart_link_product.id  # Adjust this if the name field is different
+        return obj.id  # Adjust this if the name field is different
     
     def get_product_name(self, obj):
         return obj.product.name  # Retrieves the product name
+    
+    def get_product_price(self, obj):
+        return obj.product.price  # Retrieves the product name
+
 
     def get_client_name(self, obj):
         return obj.cart.user.username  # Assumes `user` is the user related to the `cart`
@@ -91,31 +99,109 @@ class CartItemSerializer(serializers.ModelSerializer):
 
 
 class CartSerializer(serializers.ModelSerializer):
-    cart_link_product = CartItemSerializer(many=True, required=False)
+    # Define a custom field to display product names and quantities directly within the cart
+    cart_link_product = serializers.SerializerMethodField()
     client_name = serializers.SerializerMethodField()
-    
+    payment_status = serializers.SerializerMethodField()
+
     class Meta:
         model = Cart
-        fields = ['user', "client_name", "cart_link_product", "created_at", "id", "total_price" , "client_name"]
-        
+        fields = ['id', 'user', 'total_price', 'created_at', 'cart_link_product', 'client_name', 'payment_status']
 
     def get_client_name(self, obj):
-        # Assuming the client name is stored in the `User` model in the `name` field
-        return obj.user.username  # Adjust this if the name field is different
+        return obj.user.username  # Display the username of the cart owner
+
+    def get_payment_status(self, obj):
+        """
+        If payment exists, return the status. Otherwise, provide a default message.
+        """
+        payment = Payment.objects.filter(order_price=obj).first()
+        if payment:
+            return payment.status
+        else:
+            return 'No payment initiated'
+
+    def get_cart_link_product(self, obj):
+        """
+        Get the product name and quantity for each item in the cart.
+        This field is populated without a new serializer, directly in the CartSerializer.
+        """
+        # Retrieve all cart items related to this cart
+        cart_items = Cart_link_product.objects.filter(cart=obj)
+        
+        # Collect product name and quantity for each item in the cart
+        product_info = []
+        for item in cart_items:
+            product_info.append({
+                'product_name': item.product.name,
+                'product_price': item.product.price,# Fetch the product name
+                'quantity': item.quantity  # Fetch the quantity of that product in the cart
+            })
+
+        return product_info
 
     def create(self, validated_data):
-        user = User.objects.get(id=validated_data["user"].id)
-        cart = Cart.objects.create(user_id=validated_data["user"].id)
-        print(cart)
+        """
+        When creating a new cart, you may want to initiate a PayPal transaction if no payment exists.
+        """
+        user = validated_data.get('user')
+        cart = Cart.objects.create(user=user)
+        
+        # Assuming that the cart should be linked to a payment if none exists
+        self.initiate_paypal_payment(cart)
+        
         return cart
 
+    def initiate_paypal_payment(self, cart):
+        """
+        Initiate a PayPal payment if no payment exists for the cart.
+        Here, you'd implement the logic for creating a PayPal transaction
+        and then storing the transaction ID and status in the Payment model.
+        """
+        payment = PaypalPayment({
+            "intent": "sale",
+            "payer": {
+                "payment_method": "paypal"
+            },
+            "transactions": [{
+                "amount": {
+                    "total": str(cart.total_price),
+                    "currency": "USD"
+                },
+                "description": f"Payment for cart {cart.id}"
+            }],
+            "redirect_urls": {
+                "return_url": "http://example.com/return",
+                "cancel_url": "http://example.com/cancel"
+            }
+        })
+
+        if payment.create():
+            # Payment was created successfully on PayPal, so store the information in the database
+            Payment.objects.create(
+                order_price=cart,
+                currency="USD",
+                amount_payed=cart.total_price,
+                payment_method="PayPal",
+                paypal_id=payment.id,
+                status="Pending"
+            )
+        else:
+            # Handle errors if the payment creation failed
+            raise serializers.ValidationError("Payment initiation failed")
+
     def update(self, instance, validated_data):
+        """
+        Update cart logic. You can include more logic here for payment or cart changes.
+        """
         cart_link_products = validated_data.pop('cart_link_product', [])
 
-        instance.user_id = validated_data.get('user', instance.user_id)
+        # Update cart details
+        instance.total_price = validated_data.get('total_price', instance.total_price)
         instance.save()
 
-        existing_items = {item.product.id: item for item in instance.Cart_link_product.all()}
+        # Update cart items
+        existing_items = {item.product.id: item for item in instance.cart_link_product.all()}
         new_items = {item_data['product'].id: item_data for item_data in cart_link_products}
 
         for product_id, item in existing_items.items():

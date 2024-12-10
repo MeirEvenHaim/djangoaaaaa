@@ -1,8 +1,8 @@
 from rest_framework import serializers
-from myapp.Models import Shipping, Order
+from myapp.Models import Shipping,Cart
 
 class ShippingSerializer(serializers.ModelSerializer):
-    order = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())  # Reference the order
+    order = serializers.PrimaryKeyRelatedField(queryset=Cart.objects.all())  # Reference the order
 
     class Meta:
         model = Shipping

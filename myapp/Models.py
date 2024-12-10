@@ -3,8 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from paypal.standard.models import ST_PP_COMPLETED  # Payment completed status
-from paypal.standard.ipn.signals import valid_ipn_received  # Signal for IPN
-
+import paypalrestsdk # type: ignore
 
     
 # Category Model
@@ -46,6 +45,8 @@ class Cart(models.Model):
     user = models.ForeignKey(User, related_name='Cart', on_delete=models.CASCADE)  # Changed 'user' to 'client'
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(auto_now_add=True)
+   
+    
    
 
     def __str__(self):
@@ -94,7 +95,7 @@ class Payment(models.Model):
  
 # Shipping Model
 class Shipping(models.Model):
-    cart_idr_id = models.OneToOneField(Cart, on_delete=models.CASCADE, related_name='shipping')
+    cart_id = models.OneToOneField(Cart, on_delete=models.CASCADE, related_name='shipping')
     shipping_address = models.TextField()
     shipping_date = models.DateTimeField(blank=True, null=True)
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
@@ -102,4 +103,4 @@ class Shipping(models.Model):
     delivery_date = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return f"Shipping {self.id} for Order {self.order.id}"
+        return f"Shipping {self.id} for Order {self.cart_id.id}"
