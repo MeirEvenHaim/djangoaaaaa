@@ -75,3 +75,15 @@ def Show_cart_and_modify_cart(request, pk):
         elif request.method == 'DELETE':
             cart.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        
+        
+@api_view(['PATCH'])
+def lock_cart(request, cart_id):
+    try:
+        cart = Cart.objects.get(id=cart_id)
+        cart.locked = True
+        cart.save()
+        return Response({'message': 'Cart successfully locked'}, status=status.HTTP_200_OK)
+    except Cart.DoesNotExist:
+        return Response({'error': 'Cart not found'}, status=status.HTTP_404_NOT_FOUND)

@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from paypal.standard.models import ST_PP_COMPLETED  # Payment completed status
 import paypalrestsdk # type: ignore
-
+from django.core.exceptions import ValidationError
     
 # Category Model
 class Category(models.Model):
@@ -45,7 +45,7 @@ class Cart(models.Model):
     user = models.ForeignKey(User, related_name='Cart', on_delete=models.CASCADE)  # Changed 'user' to 'client'
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(auto_now_add=True)
-   
+    locked = models.BooleanField(default=False)  # Field to lock the cart after payment
     
    
 
@@ -61,38 +61,92 @@ class Cart_link_product(models.Model):
 
     def __str__(self):
         return f"user: {self.cart.user}, {self.quantity} of {self.product.name}"
-  
 
+from django.db import models
 
 class Payment(models.Model):
-    order_price = models.OneToOneField(Cart, on_delete=models.CASCADE, related_name='payment')
-    currency = models.CharField(max_length = 20)
-    payment_date = models.DateTimeField(auto_now_add=True)
-    amount_payed = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=20, choices=[('Credit Card', 'Credit Card'), ('PayPal', 'PayPal')], default='PayPal')
-    paypal_id = models.CharField(max_length=255, unique=True, blank=True, null=True)  # PayPal Transaction ID
-    status = models.CharField(max_length=20, choices=[('Pending', 'Pending'), ('Completed', 'Completed'), ('Failed', 'Failed')], default='Pending')
+    order_price = models.OneToOneField(
+        Cart, on_delete=models.CASCADE, related_name='payment', blank=True, null=True,
+        help_text="Links a payment to a specific cart order. This field is optional."
+    )  
+    
+    # Payment identification
+    paypal_order_id = models.CharField(
+        max_length=255, unique=True, blank=True, null=True,
+        help_text="The unique ID for the PayPal order (e.g., '53325112R3150873A')."
+    )
+    capture_id = models.CharField(
+        max_length=255, blank=True, null=True,
+        help_text="The unique ID for the payment capture (e.g., '1K3916117J273125C')."
+    )
 
-    def complete_payment(self, txn_id, amount):
-        """Mark payment as complete."""
-        self.paypal_id = txn_id
-        self.status = 'Completed'
-        self.amount_payed = amount
-        self.save()
-        
-    def refund_payment(self):
-        payment = paypalrestsdk.Payment.find(self.paypal_id)
-        refund = payment.refund()
-        if refund.success():
-            self.status = "Refunded"
-            self.save()
-        else:
-            raise Exception(refund.error)
-        
+    # Payment details
+    intent = models.CharField(
+        max_length=50, default="CAPTURE", blank=True, null=True,
+        help_text="The payment intent (e.g., 'CAPTURE')."
+    )
+    status = models.CharField(
+        max_length=20, choices=[
+            ('COMPLETED', 'Completed'),
+            ('PENDING', 'Pending'),
+            ('FAILED', 'Failed'),
+        ],
+        default='PENDING',
+        help_text="The status of the payment.", blank=True, null=True,
+    )
+    currency = models.CharField(
+        max_length=10, default="USD",
+        help_text="The currency used for the payment.", blank=True, null=True,
+    )
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True,
+        help_text="The total amount of the payment."
+    )
+
+    # Payer details
+    payer_name = models.CharField(
+        max_length=255, blank=True, null=True,
+        help_text="Full name of the payer (e.g., 'meir evenhaim')."
+    )
+    payer_email = models.EmailField(
+        blank=True, null=True,
+        help_text="Email address of the payer."
+    )
+    payer_id = models.CharField(
+        max_length=255, blank=True, null=True,
+        help_text="The unique ID of the payer."
+    )
+
+    # Shipping details
+    shipping_address = models.JSONField(
+        blank=True, null=True,
+        help_text="The shipping address as a JSON object."
+    )
+
+    # Dates
+    create_time = models.DateTimeField(
+        blank=True, null=True,
+        help_text="The creation time of the payment."
+    )
+    update_time = models.DateTimeField(
+        blank=True, null=True,
+        help_text="The last update time of the payment."
+    )
+
+    # Utility
+    raw_response = models.JSONField(
+        blank=True, null=True,
+        help_text="Raw PayPal response for debugging or reference."
+    )
+
     def __str__(self):
-        return f"Payment {self.id} for Order {self.cart.total_price}"
+        return f"Payment {self.paypal_order_id} - {self.status}"
 
- 
+    class Meta:
+        verbose_name = "Payment"
+        verbose_name_plural = "Payments"
+        ordering = ['-create_time']
+
 # Shipping Model
 class Shipping(models.Model):
     cart_id = models.OneToOneField(Cart, on_delete=models.CASCADE, related_name='shipping')

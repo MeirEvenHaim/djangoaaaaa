@@ -156,6 +156,7 @@ PAYPAL_NOTIFY_URL = 'http://localhost:8000/paypal-ipn/'
 PAYPAL_RETURN_URL = 'http://localhost:8000/paypal-return/'
 PAYPAL_CANCEL_URL = 'http://localhost:8000/paypal-cancel/'
 DEFAULT_FROM_EMAIL = '<your-email@example.com>'
+PAYPAL_API_BASE_URL = "https://api.sandbox.paypal.com"  # Sandbox environment
 
 
 # Language and Time Zone
@@ -225,6 +226,4 @@ LOGGING = {
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
-
-
 

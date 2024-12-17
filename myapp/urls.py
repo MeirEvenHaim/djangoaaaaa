@@ -1,15 +1,14 @@
 from django.urls import path
 from myapp.views.cart_link_product_Views import show_user_cart_and_create_user_cart , modify_user_cart_item 
 from myapp.views.categoryViews import categories_preview_and_or_creation, categories_modification_and_or_deletion
-from myapp.views.paymentView import Payment_cancel, Payment_creation, Payment_modifications, Payment_success
+from myapp.views.paymentView import create_payment , delete_payment , retrieve_payment ,list_payments , update_payment
 from myapp.views.productViews import modifying_existing_products, creation_of_products_and_preview_products
 from myapp.views.registerViews import register
 from myapp.views.shipping import shipping_detail, shipping_orders_adresses_preview_or_creation
 from myapp.views.supplierViews import supplier_detail, supplier_list
 from myapp.views.userView import UserViewSet
 from myapp.views.loginView import CustomTokenObtainPairView
-from myapp.views.cartViews import Show_cart_and_create_cart, Show_cart_and_modify_cart
-from myapp.views.webhook_view import paypal_webhook
+from myapp.views.cartViews import Show_cart_and_create_cart, Show_cart_and_modify_cart, lock_cart
 
 # User view set
 user_list = UserViewSet.as_view({
@@ -47,6 +46,7 @@ urlpatterns = [
     # Cart URLs
     path('carts/', Show_cart_and_create_cart, name='cart-list'),
     path('carts/<int:pk>/', Show_cart_and_modify_cart, name='cart-detail'),
+    path('carts/<int:cart_id>/lock/', lock_cart, name='lock_cart'),
     
     # CartItem URLs
     path('cart_link_products/' ,show_user_cart_and_create_user_cart, name='cart-item-list'),
@@ -57,10 +57,10 @@ urlpatterns = [
     path('shippings/', shipping_orders_adresses_preview_or_creation, name='shipping-list'),
     path('shippings/<int:pk>/', shipping_detail, name='shipping-detail'),
     
-    path('payments/', Payment_creation, name='payment-list'),  
-    path('payments/<int:pk>/', Payment_modifications, name='payment-detail'),  
-    path('payments/success/', Payment_success, name='payment-success'),
-    path('payments/cancel/', Payment_cancel, name='payment-cancel'),
-    path('paypal-webhook/', paypal_webhook, name='paypal-webhook'),
+    path("payments/", list_payments, name="list_payments"),
+    path("payments/<int:payment_id>/", retrieve_payment, name="retrieve_payment"),
+    path("payments/create/", create_payment, name="create_payment"),
+    path("payments/<int:payment_id>/update/", update_payment, name="update_payment"),
+    path("payments/<int:payment_id>/delete/", delete_payment, name="delete_payment"),
 
     ]
