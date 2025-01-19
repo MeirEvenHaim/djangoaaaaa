@@ -1,9 +1,6 @@
 from rest_framework import serializers
 from myapp.Models import Cart, Cart_link_product, Payment, Product 
 from myapp.services.stock_manager import StockManager
-from django.contrib.auth.models import User
-from paypalrestsdk import Payment as PaypalPayment
-
 
 
 class CartItemSerializer(serializers.ModelSerializer):
@@ -11,13 +8,13 @@ class CartItemSerializer(serializers.ModelSerializer):
     client_name = serializers.SerializerMethodField()
     product_price = serializers.SerializerMethodField()
     
-    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
-    cart = serializers.PrimaryKeyRelatedField(queryset=Cart.objects.all())
+    product_id = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    cart_id = serializers.PrimaryKeyRelatedField(queryset=Cart.objects.all())
     quantity = serializers.IntegerField(min_value=1)
 
     class Meta:
         model = Cart_link_product
-        fields = ["id",'cart', 'product', 'quantity','product_name', 'client_name' ,"product_price" ]
+        fields = ["id",'cart_id', 'product_id', 'quantity','product_name', 'client_name' ,"product_price" ]
         
     def get_id(self, obj):
         # Assuming the client name is stored in the `User` model in the `name` field
@@ -28,7 +25,6 @@ class CartItemSerializer(serializers.ModelSerializer):
     
     def get_product_price(self, obj):
         return obj.product.price  # Retrieves the product name
-
 
     def get_client_name(self, obj):
         return obj.cart.user.username  # Assumes `user` is the user related to the `cart`
@@ -106,7 +102,7 @@ class CartSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Cart
-        fields = ['id', 'user', 'total_price', 'created_at', 'cart_link_product', 'client_name', 'payment_status']
+        fields = ['id','locked', 'user', 'total_price', 'created_at', 'cart_link_product', 'client_name', 'payment_status']
 
     def get_client_name(self, obj):
         return obj.user.username  # Display the username of the cart owner
@@ -147,48 +143,7 @@ class CartSerializer(serializers.ModelSerializer):
         user = validated_data.get('user')
         cart = Cart.objects.create(user=user)
         
-        # Assuming that the cart should be linked to a payment if none exists
-        self.initiate_paypal_payment(cart)
-        
         return cart
-
-    def initiate_paypal_payment(self, cart):
-        """
-        Initiate a PayPal payment if no payment exists for the cart.
-        Here, you'd implement the logic for creating a PayPal transaction
-        and then storing the transaction ID and status in the Payment model.
-        """
-        payment = PaypalPayment({
-            "intent": "sale",
-            "payer": {
-                "payment_method": "paypal"
-            },
-            "transactions": [{
-                "amount": {
-                    "total": str(cart.total_price),
-                    "currency": "USD"
-                },
-                "description": f"Payment for cart {cart.id}"
-            }],
-            "redirect_urls": {
-                "return_url": "http://example.com/return",
-                "cancel_url": "http://example.com/cancel"
-            }
-        })
-
-        if payment.create():
-            # Payment was created successfully on PayPal, so store the information in the database
-            Payment.objects.create(
-                order_price=cart,
-                currency="USD",
-                amount_payed=cart.total_price,
-                payment_method="PayPal",
-                paypal_id=payment.id,
-                status="Pending"
-            )
-        else:
-            # Handle errors if the payment creation failed
-            raise serializers.ValidationError("Payment initiation failed")
 
     def update(self, instance, validated_data):
         """

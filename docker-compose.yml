@@ -1,12 +1,26 @@
 version: '3.11'
-
 services:
+
+  db:
+
+    image: mysql:8.0.11
+    container_name: project_name_mariadb
+    volumes:
+        - shared-volume:/var/lib/minesql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: ecommerce
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 1234
+    ports:
+      - "3307:3306"
   web:
     build: .
     container_name: django_app
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - .:/app
+         - .:/app
     ports:
       - "8000:8000"
     depends_on:
@@ -14,7 +28,11 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-
+      - DB_HOST=db
+      - DB_NAME=ecommerce
+      - DB_USER=root
+      - DB_PASSWORD=1234
+      - DB_PORT=3306
   redis:
     image: redis:alpine
     container_name: redis_server
@@ -22,4 +40,9 @@ services:
       - "6379:6379"
 
 
-
+volumes:
+  shared-volume:
+  
+networks:
+  ecommerce_network:
+    driver: bridge

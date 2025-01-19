@@ -3,7 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from paypal.standard.models import ST_PP_COMPLETED  # Payment completed status
-import paypalrestsdk # type: ignore
+
 from django.core.exceptions import ValidationError
     
 # Category Model
@@ -152,7 +152,6 @@ class Shipping(models.Model):
     cart_id = models.OneToOneField(Cart, on_delete=models.CASCADE, related_name='shipping')
     shipping_address = models.TextField()
     shipping_date = models.DateTimeField(blank=True, null=True)
-    tracking_number = models.CharField(max_length=100, blank=True, null=True)
     shipping_method = models.CharField(max_length=50, choices=[('Standard', 'Standard'), ('Express', 'Express')], default='Standard')
     delivery_date = models.DateTimeField(blank=True, null=True)
 

@@ -31,6 +31,7 @@ def create_payment(request):
         if payment.order_price:
             cart.locked = True
             cart.save()
+            print("cart is locked")
         
         # Return success response with the payment data
         return Response(serializer.data, status=status.HTTP_201_CREATED)

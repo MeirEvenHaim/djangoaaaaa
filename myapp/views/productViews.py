@@ -42,22 +42,19 @@ def creation_of_products_and_preview_products(request):
 def modifying_existing_products(request, pk):
     product = get_object_or_404(Product, pk=pk)  # Retrieve the product
     
-    # Handle GET requests (no caching for individual product details here)
     if request.method == 'GET':
         serializer = ProductSerializer(product)
         return Response(serializer.data)
 
-    # Only admins can update or delete products
     if not request.user.is_staff:
         return Response({"detail": "You do not have permission to perform this action."}, 
                         status=status.HTTP_403_FORBIDDEN)
-
-    # Handle PUT requests (update product and invalidate cache)
+        
     elif request.method == 'PUT':
         serializer = ProductSerializer(product, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            delete_cache("all_products")  # Invalidate products list cache
+            delete_cache("all_products")  
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

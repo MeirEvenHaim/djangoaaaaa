@@ -1,6 +1,9 @@
 import os
+from decouple import config
 from datetime import timedelta
 from logging.handlers import RotatingFileHandler
+import pymysql
+pymysql.install_as_MySQLdb()
 # Base directory of the project
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 print(f"BASE_DIR {BASE_DIR}")
@@ -33,6 +36,7 @@ INSTALLED_APPS = [
 
 # Middleware
 MIDDLEWARE = [
+    # 'django.middleware.cache.UpdateCacheMiddleware'
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -41,11 +45,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'django.middleware.gzip.GZipMiddleware',  # For compression
-    # 'django.middleware.cache.CacheMiddleware',  # For caching
-    # 'django.middleware.locale.LocaleMiddleware',  # For language support
-    # 'django.middleware.transaction.TransactionMiddleware',  # For DB transactions
+    # 'django.middleware.cache.FetchFromCacheMiddleware'
 ]
+
 
 # URL Configuration
 ROOT_URLCONF = 'myproj.urls'  # Replace with your project name
@@ -56,13 +58,28 @@ WSGI_APPLICATION = 'myproj.wsgi.application'  # Replace with your project name
 # ASGI Application
 ASGI_APPLICATION = 'myproj.asgi.application'  # Replace with your project name
 
-# Database Configuration
+
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+#     }
+# }
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': config('MYSQL_DATABASE', 'ecommerce'),
+        'USER': config('MYSQL_USER', 'root'),
+        'PASSWORD': config('MYSQL_PASSWORD', '1234'),
+        'HOST': config('DB_HOST', 'db'),
+        'PORT': config('DB_PORT', '3306'),
     }
 }
+
+
+
+
 
 # Static Files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
@@ -145,20 +162,20 @@ EMAIL_PORT = 465  # SMTP port
 EMAIL_USE_SSL = True  # Use SSL for secure connection
 
 
-# PayPal Configuration
+
 PAYPAL_MODE = 'sandbox'  # or 'live' for production
 PAYPAL_CLIENT_ID = 'AcTg13p-nTvInt70-aj_Kj-d-2CcyWUflaoP8hhKRnWYYAOUOsmgQiGHbLack1Ln912UtnCBneKiZJ4y'
 PAYPAL_CLIENT_SECRET = 'EEjItYIIZKwfF1c7d1VH9DAEdRzVCj0inPsa4l2DdoZt5J9DQ8n2J5huagsGt9lTzLHWf7JKOOC8HxW-'
 PAYPAL_RECEIVER_EMAIL = 'meiro@meiro.com'
 PAYPAL_TEST = True  # Set False when going live
-# URLs for PayPal's return/cancel pages (use dummy URLs for now)
+
 PAYPAL_NOTIFY_URL = 'http://localhost:8000/paypal-ipn/'
 PAYPAL_RETURN_URL = 'http://localhost:8000/paypal-return/'
 PAYPAL_CANCEL_URL = 'http://localhost:8000/paypal-cancel/'
-DEFAULT_FROM_EMAIL = '<your-email@example.com>'
+DEFAULT_FROM_EMAIL = 'meiro@meiro.com'
 PAYPAL_API_BASE_URL = "https://api.sandbox.paypal.com"  # Sandbox environment
 
-
+ 
 # Language and Time Zone
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -181,12 +198,7 @@ CACHES = {
     }
 }
 
-
-
-# Session setup (if you want to use Redis for sessions)
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-
-
 
 LOGGING = {
     'version': 1,
@@ -197,31 +209,36 @@ LOGGING = {
         },
     },
     'handlers': {
+        
         'console': {
-            'level': 'DEBUG',
+            'level': 'WARNING',  
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
+        
         'file': {
-            'level': 'DEBUG',
+            'level': 'DEBUG',  
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'app.log'),
             'formatter': 'simple',
         },
     },
     'loggers': {
+       
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console', 'file'],  
             'level': 'INFO',
             'propagate': True,
         },
+    
         'myapp': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console', 'file'],  
             'level': 'DEBUG',
             'propagate': False,
         },
     },
 }
+
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
