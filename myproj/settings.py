@@ -1,8 +1,8 @@
 import os
 from decouple import config
 from datetime import timedelta
-from logging.handlers import RotatingFileHandler
 import pymysql
+
 pymysql.install_as_MySQLdb()
 # Base directory of the project
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -66,6 +66,7 @@ ASGI_APPLICATION = 'myproj.asgi.application'  # Replace with your project name
 #     }
 # }
 
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -76,10 +77,6 @@ DATABASES = {
         'PORT': config('DB_PORT', '3306'),
     }
 }
-
-
-
-
 
 # Static Files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
@@ -96,6 +93,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Templates Configuration
 TEMPLATES = [
     {
+    
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,

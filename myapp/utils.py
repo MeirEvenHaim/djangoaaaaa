@@ -1,8 +1,14 @@
 from django.core.cache import cache
 import json
 import logging
-
+import decimal
 logger = logging.getLogger(__name__)
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, decimal.Decimal):
+            return float(obj)
+        return super().default(obj)
 
 def get_or_set_cache(key, callback, timeout=300):
     """
@@ -27,8 +33,8 @@ def get_or_set_cache(key, callback, timeout=300):
     # Fetch data using the callback function
     data = callback()
     logger.info(f"Fetched data for key: {key}, value: {data}")
-    # Serialize data to JSON before caching
-    serialized_data = json.dumps(data)
+    # Serialize data to JSON before caching using the custom encoder
+    serialized_data = json.dumps(data, cls=DecimalEncoder)
     # Store serialized data in cache
     cache.set(key, serialized_data, timeout=timeout)
     return data
